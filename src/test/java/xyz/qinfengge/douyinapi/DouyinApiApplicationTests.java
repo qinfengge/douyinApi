@@ -17,7 +17,7 @@ class DouyinApiApplicationTests {
 	@Test
 	void readFiles() {
 		String path = "J:/dy";
-		String ip = "http://v.gggg.plus/douyin/";
+		String ip = "http://xxx.com/douyin/";
 		File file = new File(path);
 		String [] filelist = file.list();
 		for (int i=0;i< filelist.length;i++){
