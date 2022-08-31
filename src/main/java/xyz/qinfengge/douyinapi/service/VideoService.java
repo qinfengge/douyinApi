@@ -2,6 +2,10 @@ package xyz.qinfengge.douyinapi.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import xyz.qinfengge.douyinapi.entity.Video;
+import xyz.qinfengge.douyinapi.result.Result;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 
 /**
@@ -9,4 +13,5 @@ import xyz.qinfengge.douyinapi.entity.Video;
 */
 public interface VideoService extends IService<Video> {
 
+    Result init(String isRename) throws IOException;
 }

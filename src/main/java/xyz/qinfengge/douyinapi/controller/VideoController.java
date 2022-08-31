@@ -1,18 +1,19 @@
 package xyz.qinfengge.douyinapi.controller;
 
 import cn.hutool.core.util.RandomUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import xyz.qinfengge.douyinapi.config.SystemConfig;
 import xyz.qinfengge.douyinapi.entity.Video;
 import xyz.qinfengge.douyinapi.result.Result;
 import xyz.qinfengge.douyinapi.service.VideoService;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,30 +31,12 @@ public class VideoController {
     @Autowired
     private VideoService videoService;
 
-    @PostMapping("init")
-    public Result init(){
-        //本地已处理过的视频路径
-        String path = "J:/douyinDown/TikTokDownload-main/Download/like/like";
-        //上传到的服务器路径 用于拼接视频URL
-        String ip = "https://xxx.com/like/";
-        File file = new File(path);
-        String [] filelist = file.list();
+    @Autowired
+    private SystemConfig systemConfig;
 
-        for (int i=0;i< filelist.length;i++){
-            Video video = new Video();
-            video.setId(i+1);
-//            String name = filelist[i].replaceAll("#", "")
-//                    .replace("C__","")
-//                    .replaceAll("\"","")
-//                    .replaceAll("//////“","")
-//                    .replaceAll("【","")
-//                    .replaceAll("】","");
-            video.setName(filelist[i]);
-            video.setUrl(ip + filelist[i]);
-            System.out.println(video);
-            videoService.save(video);
-        }
-        return Result.ok("init成功！");
+    @PostMapping("init")
+    public Result init() throws IOException {
+        return videoService.init(systemConfig.getIsRename());
     }
 
 
@@ -63,9 +46,15 @@ public class VideoController {
      */
     @GetMapping("random")
     public Result random(){
-        //获取表中数据总数
-        long count = videoService.count();
-        int random = RandomUtil.randomInt(1,(int)count);
+        //获取表中id最大值
+        QueryWrapper<Video> wrapper1 = new QueryWrapper<>();
+        wrapper1.select("max(id) as id");
+        Video max = videoService.getOne(wrapper1);
+
+        QueryWrapper<Video> wrapper2 = new QueryWrapper<>();
+        wrapper2.select("min(id) as id");
+        Video min = videoService.getOne(wrapper2);
+        int random = RandomUtil.randomInt(min.getId(),max.getId());
         Video video = videoService.getById(random);
         return Result.ok(video);
     }
@@ -76,18 +65,23 @@ public class VideoController {
      */
     @GetMapping("randomList")
     public Result randomList(){
-        int count = (int) videoService.count();
-        int [] all = new int[count];
-        for (int i=0;i<count;i++){
-            all[i] = i+1;
-        }
+        List<Integer> all = getAllIds();
         //把int数组转为collection集合
-        List<Integer> collect = Arrays.stream(all).boxed().collect(Collectors.toList());
-        Set<Integer> integers = RandomUtil.randomEleSet(collect, 5);
+        //List<Integer> collect = Arrays.stream(all).boxed().collect(Collectors.toList());
+        Set<Integer> integers = RandomUtil.randomEleSet(all, 5);
         QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("id", integers);
         List<Video> list = videoService.list(queryWrapper);
         return Result.ok(list);
+    }
+
+    private List<Integer> getAllIds() {
+        List<Video> videos = videoService.list();
+        List<Integer> all = new ArrayList<>();
+        for (Video video : videos) {
+            all.add(video.getId());
+        }
+        return all;
     }
 
 
@@ -99,20 +93,16 @@ public class VideoController {
      */
     @PostMapping("exRandom")
     public Result exRandom(@RequestBody Integer[] playedIds){
-        int count = (int) videoService.count();
+        List<Integer> allIds = getAllIds();
 
-        Set<Integer> notPlayList = new HashSet<Integer>();
+        Set<Integer> notPlayList = new HashSet<>(allIds);
 
-        for (int i=0;i<count;i++){
-            notPlayList.add(i+1);
-        }
 
         Set<Integer> hasPlayList = Stream.of(playedIds).collect(Collectors.toSet());
 
         //把全部的视频ID和已经播放过的视频ID都转为SET集合
         //使用removeAll方法求差集
         notPlayList.removeAll(hasPlayList);
-        System.out.println(notPlayList);
         if (notPlayList.size()>=5){
             Set<Integer> integers = RandomUtil.randomEleSet(notPlayList, 5);
             QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
