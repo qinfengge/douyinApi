@@ -3,6 +3,7 @@ package xyz.qinfengge.douyinapi.controller;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import xyz.qinfengge.douyinapi.config.SystemConfig;
@@ -13,6 +14,8 @@ import xyz.qinfengge.douyinapi.service.VideoService;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,7 +39,12 @@ public class VideoController {
 
     @PostMapping("init")
     public Result init() throws IOException {
-        return videoService.init(systemConfig.getIsRename());
+        File file = new File(systemConfig.getFileInputDir());
+        if (file.exists()){
+            return videoService.init(systemConfig.getIsRename());
+        }else {
+            return Result.fail("输入路径错误！=====" + systemConfig.getFileInputDir());
+        }
     }
 
 

@@ -27,4 +27,5 @@ class DouyinApiApplicationTests {
 			System.out.println(ip + name);
 		}
 	}
+
 }

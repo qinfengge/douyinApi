@@ -9,13 +9,12 @@ import xyz.qinfengge.douyinapi.result.Result;
 import xyz.qinfengge.douyinapi.service.VideoService;
 import xyz.qinfengge.douyinapi.mapper.VideoMapper;
 import org.springframework.stereotype.Service;
+import xyz.qinfengge.douyinapi.util.FFmpegUtil;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,24 +28,45 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     @Autowired
     private SystemConfig systemConfig;
 
+    @Autowired
+    private FFmpegUtil ffmpegUtil;
+
+    /**
+     * 当前所在目录路径
+     */
     String path;
+
+    /**
+     * 当前目录，不包含盘符
+     */
     String prePath;
+
+    /**
+     * 标记，用来判断是否已有thumbnail文件夹
+     */
+    Boolean flag = true;
 
     @Override
     public Result init(String isRename) throws IOException {
         Boolean b = "true".equals(isRename);
-        System.out.println(systemConfig.getFileInputDir());
         handleFile(systemConfig.getFileInputDir(), b);
-        return Result.ok("init成功！");
+        if (flag){
+            return Result.ok("init成功！");
+        }else {
+            return Result.fail("已经存在thumbnail文件夹！");
+        }
     }
 
-    private void add(String name, String prePath) throws UnsupportedEncodingException {
+    private void add(String oldName, String newName, String prePath) throws UnsupportedEncodingException {
         //上传到的服务器路径 用于拼接视频URL
         String ip = systemConfig.getSiteUrl();
+        String screenShot = ffmpegUtil.getScreenShot(path + "\\" + newName, systemConfig.getFileInputDir() + "\\" + "thumbnail" + "\\" + prePath + "\\");
         Video video = new Video();
-        video.setName(name);
-        String encode = URLEncoder.encode(name, "UTF-8");
+        video.setName(oldName);
+        String encode = URLEncoder.encode(newName, "UTF-8");
+        String thumb = URLEncoder.encode(screenShot, "UTF-8");
         video.setUrl(ip + "/" + prePath + "/" + encode);
+        video.setThumbnail(ip + "/" + "thumbnail" + "/" + prePath + "/" + thumb);
         this.getBaseMapper().insert(video);
 
     }
@@ -65,16 +85,23 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
                 if (f.length() == 0) {
                     f.delete();
                     System.err.println("已删除大小为0的空文件" + f.getName());
-                } else if (b) {
+                } else if (b && flag) {
                     doRename(f);
                     handleFile(f.getAbsolutePath(), b);
-                } else {
-                    add(f.getName(), prePath);
+                } else if (!b){
+                    add(f.getName(), f.getName(), prePath);
+                }else {
+                    return;
                 }
             } else if (f.isDirectory()) {
                 prePath = f.getName();
-                path = f.getAbsolutePath();
-                handleFile(f.getAbsolutePath(), b);
+                if ("thumbnail".equals(prePath)){
+                    flag = false;
+                    return;
+                }else {
+                    path = f.getAbsolutePath();
+                    handleFile(f.getAbsolutePath(), b);
+                }
             }
         }
     }
@@ -90,6 +117,6 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
         //重命名
         File dest = new File(path + "\\" + newName);
         file.renameTo(dest);
-        add(newName, prePath);
+        add(name, newName, prePath);
     }
 }

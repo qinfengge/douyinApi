@@ -23,10 +23,14 @@ public class Video implements Serializable {
 
     private String name;
     /**
-     * 
+     * 视频URL
      */
     private String url;
 
+    /**
+     * 缩略图URL
+     */
+    private String thumbnail;
     /**
      * 
      */

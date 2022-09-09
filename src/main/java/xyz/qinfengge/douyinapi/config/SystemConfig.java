@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Data
-@PropertySource(value="classpath:application.properties",encoding = "utf-8")
 public class SystemConfig {
 
     @Value("${site.url}")
@@ -22,9 +21,6 @@ public class SystemConfig {
 
     @Value("${file.input.dir}")
     private String fileInputDir;
-
-    @Value("${thumbnail.output.dir}")
-    private String thumbnailOutputDir;
 
     @Value("${isRename}")
     private String isRename;
