@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
 @SpringBootTest
 class DouyinApiApplicationTests {
@@ -26,6 +27,15 @@ class DouyinApiApplicationTests {
 			String name = URLEncoder.encode(filelist[i], "UTF-8");
 			System.out.println(ip + name);
 		}
+	}
+
+	@Test
+	void tt(){
+		Integer [] arr = new Integer[925];
+		for (int i=1;i< 926;i++){
+			arr[i-1] = i;
+		}
+		System.err.println(Arrays.toString(arr));
 	}
 
 }

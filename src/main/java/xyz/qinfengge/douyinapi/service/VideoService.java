@@ -13,5 +13,5 @@ import java.io.UnsupportedEncodingException;
 */
 public interface VideoService extends IService<Video> {
 
-    Result init(String isRename) throws IOException;
+    Result<Object> init(String isRename) throws IOException;
 }

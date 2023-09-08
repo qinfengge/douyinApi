@@ -37,12 +37,13 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     String path;
 
     /**
-     * 当前目录，不包含盘符
+     * 当前目录名，不包含盘符
      */
     String prePath;
 
     /**
      * 标记，用来判断是否已有thumbnail文件夹
+     * 如果已有thumbnail文件夹，则不会执行添加操作
      */
     Boolean flag = true;
 

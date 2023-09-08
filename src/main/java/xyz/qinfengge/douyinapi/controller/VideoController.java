@@ -1,24 +1,22 @@
 package xyz.qinfengge.douyinapi.controller;
 
+import cn.hutool.bloomfilter.BitSetBloomFilter;
+import cn.hutool.bloomfilter.BloomFilterUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import lombok.val;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import xyz.qinfengge.douyinapi.config.SystemConfig;
 import xyz.qinfengge.douyinapi.entity.Video;
 import xyz.qinfengge.douyinapi.result.Result;
 import xyz.qinfengge.douyinapi.service.VideoService;
 
+import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 /**
@@ -31,14 +29,16 @@ import java.util.stream.Stream;
 @CrossOrigin
 public class VideoController {
 
-    @Autowired
+    @Resource
     private VideoService videoService;
 
-    @Autowired
+    @Resource
     private SystemConfig systemConfig;
 
+    private final Integer size = 5;
+
     @PostMapping("init")
-    public Result init() throws IOException {
+    public Result<Object> init() throws IOException {
         File file = new File(systemConfig.getFileInputDir());
         if (file.exists()){
             return videoService.init(systemConfig.getIsRename());
@@ -53,7 +53,7 @@ public class VideoController {
      * @return
      */
     @GetMapping("random")
-    public Result random(){
+    public Result<Object> random(){
         //获取表中id最大值
         QueryWrapper<Video> wrapper1 = new QueryWrapper<>();
         wrapper1.select("max(id) as id");
@@ -72,7 +72,7 @@ public class VideoController {
      * @return
      */
     @GetMapping("randomList")
-    public Result randomList(){
+    public Result<Object> randomList(){
         List<Integer> all = getAllIds();
         //把int数组转为collection集合
         //List<Integer> collect = Arrays.stream(all).boxed().collect(Collectors.toList());
@@ -100,35 +100,39 @@ public class VideoController {
      * @return
      */
     @PostMapping("exRandom")
-    public Result exRandom(@RequestBody Integer[] playedIds){
+    public Result<Object> exRandom(@RequestBody Integer[] playedIds){
         List<Integer> allIds = getAllIds();
 
-        Set<Integer> notPlayList = new HashSet<>(allIds);
+        //创建布隆过滤器并循环添加已看过的视频ID
+        BitSetBloomFilter bitSet = BloomFilterUtil.createBitSet(allIds.size(), allIds.size(), 10);
+        Arrays.stream(playedIds).collect(Collectors.toSet())
+                .stream().iterator().forEachRemaining(v->bitSet.add(v.toString()));
 
+        List<Integer> resultIds = new ArrayList<>(size);
 
-        Set<Integer> hasPlayList = Stream.of(playedIds).collect(Collectors.toSet());
-
-        //把全部的视频ID和已经播放过的视频ID都转为SET集合
-        //使用removeAll方法求差集
-        notPlayList.removeAll(hasPlayList);
-        if (notPlayList.size()>=5){
-            Set<Integer> integers = RandomUtil.randomEleSet(notPlayList, 5);
-            QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
-            queryWrapper.in("id", integers);
-
-            List<Video> list = videoService.list(queryWrapper);
-            return Result.ok(list);
-        }else if (notPlayList.size()==0){
-            return Result.fail("您已看完全部视频！");
-        } else{
-            Set<Integer> integers = RandomUtil.randomEleSet(notPlayList, notPlayList.size());
-            QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
-            queryWrapper.in("id", integers);
-
-            List<Video> list = videoService.list(queryWrapper);
-            return Result.ok(list);
+        //获取指定大小且未观看过的视频ID
+        while (allIds.size() - playedIds.length >= size && size - resultIds.size() > 0){
+            RandomUtil.randomEleSet(allIds, size).forEach(v->{
+                if (!bitSet.contains(v.toString()) && resultIds.size() < size){
+                    resultIds.add(v);
+                    bitSet.add(v.toString());
+                }
+            });
         }
 
+        if (allIds.size() - playedIds.length < size) {
+            //如果剩余视频数量小于等于size，直接返回剩余视频
+            resultIds.addAll(allIds.stream().filter(v -> !bitSet.contains(v.toString())).collect(Collectors.toList()));
+        }
+
+
+        if (!resultIds.isEmpty()){
+            LambdaQueryWrapper<Video> wrapper = new LambdaQueryWrapper<>();
+            wrapper.in(Video::getId, resultIds);
+            return Result.ok(videoService.list(wrapper));
+        }else {
+            return Result.fail("没有更多视频了！");
+        }
     }
 
     /**
@@ -137,7 +141,7 @@ public class VideoController {
      * @return
      */
     @PostMapping("findById/{id}")
-    public Result findById(@PathVariable Integer id){
+    public Result<Object> findById(@PathVariable Integer id){
         return Result.ok(videoService.getById(id));
     }
 }
