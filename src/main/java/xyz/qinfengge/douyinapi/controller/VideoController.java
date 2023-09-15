@@ -6,6 +6,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.web.bind.annotation.*;
+import xyz.qinfengge.douyinapi.config.IdsConfig;
 import xyz.qinfengge.douyinapi.config.SystemConfig;
 import xyz.qinfengge.douyinapi.entity.Video;
 import xyz.qinfengge.douyinapi.result.Result;
@@ -34,6 +35,9 @@ public class VideoController {
 
     @Resource
     private SystemConfig systemConfig;
+
+    @Resource
+    private IdsConfig idsConfig;
 
     private final Integer size = 5;
 
@@ -73,7 +77,7 @@ public class VideoController {
      */
     @GetMapping("randomList")
     public Result<Object> randomList(){
-        List<Integer> all = getAllIds();
+        List<Integer> all = idsConfig.getAllIds();
         //把int数组转为collection集合
         //List<Integer> collect = Arrays.stream(all).boxed().collect(Collectors.toList());
         Set<Integer> integers = RandomUtil.randomEleSet(all, 5);
@@ -83,25 +87,17 @@ public class VideoController {
         return Result.ok(list);
     }
 
-    private List<Integer> getAllIds() {
-        List<Video> videos = videoService.list();
-        List<Integer> all = new ArrayList<>();
-        for (Video video : videos) {
-            all.add(video.getId());
-        }
-        return all;
-    }
 
 
     /**
      * 根据前端传值排除已看过的视频
      * 返回5条数据
-     * @param playedIds
-     * @return
+     * @param playedIds 已看过的视频ID
+     * @return 5条未看过的视频
      */
     @PostMapping("exRandom")
     public Result<Object> exRandom(@RequestBody Integer[] playedIds){
-        List<Integer> allIds = getAllIds();
+        List<Integer> allIds = idsConfig.getAllIds();
 
         //创建布隆过滤器并循环添加已看过的视频ID
         BitSetBloomFilter bitSet = BloomFilterUtil.createBitSet(allIds.size(), allIds.size(), 10);
