@@ -48,7 +48,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video>
     Boolean flag = true;
 
     @Override
-    public Result init(String isRename) throws IOException {
+    public Result<Object> init(String isRename) throws IOException {
         Boolean b = "true".equals(isRename);
         handleFile(systemConfig.getFileInputDir(), b);
         if (flag){
