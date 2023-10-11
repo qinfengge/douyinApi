@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
+import java.util.List;
+
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 
 /**
@@ -32,14 +35,23 @@ public class Video implements Serializable {
      */
     private String thumbnail;
     /**
-     * 
+     * 作者/来源账号
      */
-    private Integer count;
+    private String userName;
 
     /**
-     * 
+     * 视频类型
+     * 1：post, 2: like, 3: collection
      */
-    private Integer heart;
+    private Integer type;
+
+    /**
+     * 标签列表
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> tags;
+
+    private String created;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

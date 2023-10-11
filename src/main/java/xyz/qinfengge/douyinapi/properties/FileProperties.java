@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "file")
 public class FileProperties {
 
+    private Boolean generateThumbnail;
+
     private String videoDir;
 
     private String thumbnailDir;
