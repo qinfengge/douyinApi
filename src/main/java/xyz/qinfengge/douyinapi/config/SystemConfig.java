@@ -23,5 +23,5 @@ public class SystemConfig {
     private String fileInputDir;
 
     @Value("${isRename}")
-    private String isRename;
+    private Boolean isRename;
 }

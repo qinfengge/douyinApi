@@ -6,13 +6,11 @@ import lombok.SneakyThrows;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import xyz.qinfengge.douyinapi.config.SystemConfig;
 import xyz.qinfengge.douyinapi.dto.VideoDto;
 import xyz.qinfengge.douyinapi.entity.Video;
-import xyz.qinfengge.douyinapi.mapper.VideoMapper;
 import xyz.qinfengge.douyinapi.properties.FileProperties;
 import xyz.qinfengge.douyinapi.service.VideoService;
 
@@ -51,11 +49,9 @@ public class ThumbnailUtil {
 
         // 遍历视频文件
         for (File file : videoFiles) {
-
             if (fileProperties.getGenerateThumbnail()){
                 generateThumbnail(file);
             }
-
             videoList.add(doRename(file).getVideo());
         }
 
@@ -85,14 +81,22 @@ public class ThumbnailUtil {
             fileNameParts.add(namePart);
         }
 
-        List<String> collect = fileNameParts.stream().filter(v -> !v.isEmpty()).collect(Collectors.toList());
+        String fileName;
+        if (systemConfig.getIsRename()){
+            List<String> collect = fileNameParts.stream().filter(v -> !v.isEmpty()).collect(Collectors.toList());
 
-        List<String> sublist = collect.subList(1, collect.size() - 1);
-        String fileName = String.join(" ", sublist);
+            List<String> sublist = collect.subList(1, collect.size() - 1);
+            fileName = String.join(" ", sublist);
 
-        // 如果文件名只有标签，则设置为标签
-        if (ObjectUtil.isEmpty(fileName)){
-            fileName = String.join(" ", tags);
+            // 如果文件名只有标签，则设置为标签
+            if (ObjectUtil.isEmpty(fileName)){
+                fileName = String.join(" ", tags);
+            }
+
+            // 重命名视频
+            FileUtil.rename(file, fileName + "." + FileUtil.getSuffix(file), true);
+        }else {
+            fileName = FileUtil.getPrefix(file);
         }
 
         System.out.println("文件名:" + fileName);
@@ -101,7 +105,11 @@ public class ThumbnailUtil {
         Video video = new Video();
         video.setName(fileName);
         video.setUrl(systemConfig.getSiteUrl() + fileProperties.getVideoDir() + fileName + "." + FileUtil.getSuffix(file));
-        video.setThumbnail(systemConfig.getSiteUrl() + fileProperties.getThumbnailDir() + fileName + ".jpg");
+
+        if (fileProperties.getGenerateThumbnail()){
+            video.setThumbnail(systemConfig.getSiteUrl() + fileProperties.getThumbnailDir() + fileName + ".jpg");
+        }
+
         video.setTags(tags);
 
         VideoDto dto = new VideoDto();
@@ -121,7 +129,7 @@ public class ThumbnailUtil {
         }
         // 拼接重命名后的缩略图文件路径
         String name;
-        if ("true".equals(systemConfig.getIsRename())){
+        if (systemConfig.getIsRename()){
             name = doRename(file).getFileName();
         }else {
             name = FileUtil.getPrefix(file);
@@ -148,9 +156,5 @@ public class ThumbnailUtil {
         // 停止抓取
         grabber.stop();
 
-        if ("true".equals(systemConfig.getIsRename())){
-            // 重命名视频
-            FileUtil.rename(file, name + "." + FileUtil.getSuffix(file), true);
-        }
     }
 }

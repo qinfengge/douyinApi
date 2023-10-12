@@ -5,7 +5,6 @@ import xyz.qinfengge.douyinapi.entity.Video;
 import xyz.qinfengge.douyinapi.result.Result;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
 
 /**
@@ -13,5 +12,5 @@ import java.io.UnsupportedEncodingException;
 */
 public interface VideoService extends IService<Video> {
 
-    Result<Object> init(String isRename) throws IOException;
+    Result<Object> init(Boolean isRename) throws IOException;
 }
