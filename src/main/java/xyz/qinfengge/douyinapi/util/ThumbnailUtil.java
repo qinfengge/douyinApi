@@ -49,17 +49,22 @@ public class ThumbnailUtil {
 
         // 遍历视频文件
         for (File file : videoFiles) {
+            videoList.add(preProcess(file).getVideo());
             if (fileProperties.getGenerateThumbnail()){
-                generateThumbnail(file);
+                generateThumbnail(file, preProcess(file).getFileName());
             }
-            videoList.add(doRename(file).getVideo());
         }
 
         videoService.saveBatch(videoList);
     }
 
 
-    private VideoDto doRename(File file){
+    /**
+     * 预处理，会分离文件名中的标签
+     * @param file 文件
+     * @return VideoDto对象
+     */
+    private VideoDto preProcess(File file){
         String[] parts = file.getName().split("_");
         List<String> tags = new ArrayList<>();
         List<String> fileNameParts = new ArrayList<>();
@@ -85,13 +90,19 @@ public class ThumbnailUtil {
         if (systemConfig.getIsRename()){
             List<String> collect = fileNameParts.stream().filter(v -> !v.isEmpty()).collect(Collectors.toList());
 
-            List<String> sublist = collect.subList(1, collect.size() - 1);
-            fileName = String.join(" ", sublist);
+            if (collect.size() > 3){
+                collect = collect.subList(1, collect.size() - 1);
+            }
+
+            fileName = String.join(" ", collect);
 
             // 如果文件名只有标签，则设置为标签
             if (ObjectUtil.isEmpty(fileName)){
                 fileName = String.join(" ", tags);
             }
+
+            // 去除文件名多余的后缀
+            fileName = FileUtil.getPrefix(fileName);
 
             // 重命名视频
             FileUtil.rename(file, fileName + "." + FileUtil.getSuffix(file), true);
@@ -99,6 +110,11 @@ public class ThumbnailUtil {
             fileName = FileUtil.getPrefix(file);
         }
 
+        return videoBuilder(fileName, tags, file);
+    }
+
+
+    private VideoDto videoBuilder(String fileName, List<String> tags, File file){
         System.out.println("文件名:" + fileName);
         System.out.println("标签:" + tags);
 
@@ -120,7 +136,7 @@ public class ThumbnailUtil {
     }
 
     @SneakyThrows
-    private void generateThumbnail(File file){
+    private void generateThumbnail(File file, String fileName){
         File thumbFile = new File(fileProperties.getThumbnailDir());
         String fileAbsolutePath = file.getAbsolutePath();
         // 如果不存在缩略图文件夹，则创建
@@ -128,13 +144,8 @@ public class ThumbnailUtil {
             FileUtil.mkdir(fileProperties.getThumbnailDir());
         }
         // 拼接重命名后的缩略图文件路径
-        String name;
-        if (systemConfig.getIsRename()){
-            name = doRename(file).getFileName();
-        }else {
-            name = FileUtil.getPrefix(file);
-        }
-        String newName = fileProperties.getThumbnailDir() + "/" + name + ".jpg";
+
+        String newName = fileProperties.getThumbnailDir() + "/" + fileName + ".jpg";
 
         FFmpegFrameGrabber grabber = FFmpegFrameGrabber.createDefault(fileAbsolutePath);
         grabber.start();
