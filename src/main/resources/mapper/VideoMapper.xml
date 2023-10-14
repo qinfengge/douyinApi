@@ -11,10 +11,11 @@
             <result property="userName" column="user_name" jdbcType="VARCHAR"/>
             <result property="thumbnail" column="thumbnail" jdbcType="VARCHAR"/>
             <result property="tags" column="tags" jdbcType="VARCHAR" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+            <result property="images" column="images" jdbcType="VARCHAR" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
             <result property="created" column="created" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,url,user_name,thumbnail,tags,created
+        id,url,user_name,thumbnail,tags,images,created
     </sql>
 </mapper>

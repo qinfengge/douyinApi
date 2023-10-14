@@ -3,6 +3,7 @@ package xyz.qinfengge.douyinapi;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ClassPathResource;
 import cn.hutool.core.io.resource.ResourceUtil;
+import cn.hutool.core.util.URLUtil;
 import cn.hutool.json.JSON;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONUtil;
@@ -13,6 +14,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import xyz.qinfengge.douyinapi.entity.Video;
+import xyz.qinfengge.douyinapi.enums.Type;
 import xyz.qinfengge.douyinapi.mapper.VideoMapper;
 import xyz.qinfengge.douyinapi.util.ThumbnailUtil;
 
@@ -21,9 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
@@ -80,46 +80,94 @@ class DouyinApiApplicationTests {
 
     @Test
     void doRename() {
-		String name = "2023-09-16 19.19.23_问一下大家🤔_配置一台5000元的电脑大概需要多少元#提问挑战_video.mp4";
+        String name = "2023-09-16 19.19.23_问一下大家🤔_配置一台5000元的电脑大概需要多少元#提问挑战_video.mp4";
+        Map<String, Object> rename = rename(name);
+        System.out.println("文件名:" + rename.get("fileName"));
+        System.out.println("标签:" + rename.get("tags"));
+        System.out.println("创建日期:" + rename.get("created"));
+    }
 
-		String[] parts = name.split("_");
+    private Map<String, Object> rename(String name) {
+        String[] parts = name.split("_");
 
-		List<String> tags = new ArrayList<>();
+        List<String> tags = new ArrayList<>();
 
-		List<String> fileNameParts = new ArrayList<>();
+        List<String> fileNameParts = new ArrayList<>();
 
-		for (String part : parts) {
+        for (String part : parts) {
 
-			int start = part.indexOf("#");
-			int end = part.lastIndexOf("#");
+            int start = part.indexOf("#");
+            int end = part.lastIndexOf("#");
 
-			if (start != -1 && start != end) {
-				// 多个标签的情况
-				String tag = part.substring(start, end + 1);
-				tags.add(tag);
-				part = part.replace(tag, "");
+            if (start != -1 && start != end) {
+                // 多个标签的情况
+                String tag = part.substring(start, end + 1);
+                tags.add(tag);
+                part = part.replace(tag, "");
 
-			} else if (start != -1) {
-				// 只有一个标签的情况
-				String tag = part.substring(start);
-				tags.add(tag);
-				part = part.replace(tag, "");
-			}
+            } else if (start != -1) {
+                // 只有一个标签的情况
+                String tag = part.substring(start);
+                tags.add(tag);
+                part = part.replace(tag, "");
+            }
 
-			String namePart = part.replaceAll("#.*?#", "");
-			fileNameParts.add(namePart);
-		}
+            String namePart = part.replaceAll("#.*?#", "");
+            fileNameParts.add(namePart);
+        }
 
-		List<String> collect = fileNameParts.stream().filter(v -> !v.isEmpty()).collect(Collectors.toList());
+        List<String> collect = fileNameParts.stream().filter(v -> !v.isEmpty()).collect(Collectors.toList());
 
-		System.err.println(collect);
+        System.err.println(collect);
 
-		String[] split = name.split("\\.");
-        List<String> sublist = collect.subList(1, collect.size() - 1);
-		String fileName = String.join(" ", sublist) + "." + split[split.length - 1];
+        List<String> sublist = collect.subList(1, collect.size());
+        String fileName = String.join(" ", sublist);
 
-		System.out.println("文件名:" + fileName);
-		System.out.println("标签:" + tags);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("fileName", fileName);
+        map.put("tags", tags);
+        map.put("created", collect.get(0));
+        return map;
+    }
+
+    @Test
+    void generateImagesLink() throws UnsupportedEncodingException {
+        String path = "G:\\dy\\images";
+        String ip = "https://x.gggg.plus/images/";
+        File file = new File(path);
+        String[] filelist = file.list();
+        for (int i = 0; i < filelist.length; i++) {
+            File items = FileUtil.file(path + "\\" + filelist[i]);
+            Map<String, Object> map = rename(items.getName());
+            Object tags = map.get("tags");
+            List<String> tagsList = JSONUtil.toList(JSONUtil.parseArray(tags), String.class);
+            Video video = new Video();
+            video.setName(map.get("fileName").toString());
+            video.setTags(tagsList);
+            video.setCreated(map.get("created").toString());
+
+            List<String> images = new ArrayList<>();
+            for (String item : items.list()) {
+                File image = FileUtil.file(items.getParent() + "\\" + filelist[i] + "\\" + item);
+                Map<String, Object> imageMap = rename(image.getName());
+                String fileName = imageMap.get("fileName").toString();
+                String name = map.get("fileName").toString() + "/" + fileName;
+
+                if (FileUtil.getSuffix(image).equals("mp3")){
+                    video.setAudio(ip + name);
+                }else {
+                    images.add(ip + name);
+                }
+
+                FileUtil.rename(image, fileName, false);
+            }
+            video.setImages(images);
+            video.setType(Type.POST.getCode());
+            videoMapper.insert(video);
+
+            FileUtil.rename(items, map.get("fileName").toString(), true);
+        }
     }
 
 }

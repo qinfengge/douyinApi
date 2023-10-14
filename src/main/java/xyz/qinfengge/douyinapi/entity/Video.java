@@ -14,7 +14,7 @@ import lombok.Data;
  * 
  * @TableName video
  */
-@TableName(value ="video")
+@TableName(value ="video", autoResultMap = true)
 @Data
 public class Video implements Serializable {
     /**
@@ -51,6 +51,20 @@ public class Video implements Serializable {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> tags;
 
+    /**
+     * 图集
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> images;
+
+    /**
+     * 视频原声
+     */
+    private String audio;
+
+    /**
+     * 视频日期
+     */
     private String created;
 
     @TableField(exist = false)
