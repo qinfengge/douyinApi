@@ -3,6 +3,7 @@ package xyz.qinfengge.douyinapi;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ClassPathResource;
 import cn.hutool.core.io.resource.ResourceUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.hutool.json.JSON;
 import cn.hutool.json.JSONArray;
@@ -16,19 +17,21 @@ import org.springframework.stereotype.Component;
 import xyz.qinfengge.douyinapi.entity.Video;
 import xyz.qinfengge.douyinapi.enums.Type;
 import xyz.qinfengge.douyinapi.mapper.VideoMapper;
+import xyz.qinfengge.douyinapi.util.AdvancedUtil;
+import xyz.qinfengge.douyinapi.util.FileUtils;
 import xyz.qinfengge.douyinapi.util.ThumbnailUtil;
 
 import javax.annotation.Resource;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
 
-@SpringBootTest
+//@SpringBootTest
 class DouyinApiApplicationTests {
 
     @Resource
@@ -168,6 +171,21 @@ class DouyinApiApplicationTests {
 
             FileUtil.rename(items, map.get("fileName").toString(), true);
         }
+    }
+
+    @Resource
+    private AdvancedUtil advancedUtil;
+
+    @Test
+    void walkFileTree(){
+        advancedUtil.walkFileTree("D:\\dy\\Download");
+    }
+
+    @Test
+    void tt2(){
+        List<String> list = new ArrayList<>();
+        list.add("清风阁.txt");
+        System.err.println(ObjectUtil.contains(list, "清风阁.txt"));
     }
 
 }
