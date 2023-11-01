@@ -1,9 +1,15 @@
 package xyz.qinfengge.douyinapi.util;
 
+import cn.hutool.core.io.FileTypeUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
+import com.sun.activation.registries.MimeTypeFile;
+import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.MimeMultipart;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -27,7 +33,7 @@ public class FileUtils {
      * @param name 文件名
      * @return Map
      */
-    public Map<String, Object> rename(String name) {
+    public Map<String, Object> rename(String name, Boolean isDirectory) {
         String[] parts = name.split("_");
 
         List<String> tags = new ArrayList<>();
@@ -58,16 +64,37 @@ public class FileUtils {
 
         List<String> collect = fileNameParts.stream().filter(v -> !v.isEmpty()).collect(Collectors.toList());
 
-        System.err.println(collect);
+//        System.err.println(collect);
 
 
         // 当文件名为空时，即仅有日期时，使用日期
         String fileName;
-        if (collect.size() > 1){
-            List<String> sublist = collect.subList(1, collect.size());
-            fileName = String.join(" ", sublist);
-        }else {
+
+        if (collect.size() == 1){
             fileName = collect.get(0);
+        }else if (collect.size() == 2){
+            if (isDirectory){
+                fileName = collect.get(1);
+            }else {
+                fileName = collect.get(0) + "." + FileUtil.getSuffix(collect.get(1));
+            }
+        }else {
+            // 当不是文件夹时重命名逻辑
+            if (!isDirectory){
+                File file = FileUtil.file(name);
+                String suffix = FileUtil.getSuffix(file);
+                // 当文件是图集时重命名逻辑
+                if (!"jpg".equals(suffix)){
+                    List<String> sublist = collect.subList(1, collect.size() - 1);
+                    fileName = String.join(" ", sublist) + "." + suffix;
+                }else {
+                    List<String> sublist = collect.subList(1, collect.size() - 2);
+                    fileName = String.join(" ", sublist) + collect.get(collect.size() - 1);
+                }
+            }else {
+                List<String> sublist = collect.subList(1, collect.size());
+                fileName = String.join(" ", sublist);
+            }
         }
 
 
@@ -80,12 +107,12 @@ public class FileUtils {
 
     /**
      * 获取文件父目录名称
-     * @param path 文件路径
+     * @param dir 文件路径
      * @param level 层级
      * @return String
      */
-    public String getFileParentName(String path, Integer level){
-        String parent = FileUtil.getParent(path, level);
+    public String getFileParentName(Path dir, Integer level){
+        String parent = FileUtil.getParent(String.valueOf(dir), level);
         return parent.substring(parent.lastIndexOf("\\") + 1);
     }
 
@@ -107,13 +134,54 @@ public class FileUtils {
         DirectoryStream<Path> stream = Files.newDirectoryStream(dir);
         for (Path file : stream) {
             String fileName = file.getFileName().toString();
-            if (ObjectUtil.contains(FileUtil.getSuffix(fileName), videoSuffix)) {
+            if (ObjectUtil.contains(videoSuffix, FileUtil.getSuffix(fileName))) {
                 containsVideo = true;
             }
         }
         stream.close();
 
         return containsVideo;
+    }
+
+
+    private final String[] imageSuffix = {"jpg", "gif", "jpge", "png", "webm"};
+
+    public Map<String, String> getDirFileType(Path dir){
+        List<String> list = FileUtil.listFileNames(dir.toString());
+        Map<String, String> map = new HashMap<>();
+        for (String fileName : list) {
+            String suffix = FileUtil.getSuffix(fileName);
+
+            if (ObjectUtil.contains(videoSuffix, suffix)) {
+                map.putIfAbsent("videoSuffix", suffix);
+            }
+
+            if (ObjectUtil.contains(imageSuffix, suffix)) {
+                map.putIfAbsent("imageSuffix", suffix);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * 判断文件夹中是否包含有音频
+     * @param list 文件夹中的文件列表
+     * @return 是否包含音频
+     */
+    public Boolean hasAudio(List<String> list) {
+        // 有原声时
+        for (String s : list) {
+            return "mp3".equals(FileUtil.getSuffix(s));
+        }
+        return null;
+    }
+
+    public Boolean hasThumbnail(Path dir){
+        List<String> list = FileUtil.listFileNames(dir.toString());
+        for (String s : list) {
+            return ObjectUtil.contains(imageSuffix, FileUtil.getSuffix(s));
+        }
+        return null;
     }
 
 }

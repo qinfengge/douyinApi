@@ -31,4 +31,14 @@ public enum Type {
         this.code = code;
         this.flag = flag;
     }
+
+    public static Integer getTypeCode(String flag) {
+        for (Type type : Type.values()) {
+            if (type.flag.equals(flag)) {
+                return type.code;
+            }
+        }
+        throw new IllegalArgumentException("Invalid flag: " + flag);
+    }
+
 }

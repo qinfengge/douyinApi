@@ -31,11 +31,14 @@ import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
 
-//@SpringBootTest
+@SpringBootTest
 class DouyinApiApplicationTests {
 
     @Resource
     private VideoMapper videoMapper;
+
+    @Resource
+    private FileUtils fileUtils;
 
     @Test
     void contextLoads() {
@@ -83,8 +86,8 @@ class DouyinApiApplicationTests {
 
     @Test
     void doRename() {
-        String name = "2023-09-16 19.19.23_问一下大家🤔_配置一台5000元的电脑大概需要多少元#提问挑战_video.mp4";
-        Map<String, Object> rename = rename(name);
+        String name = "2022-02-27 12.26.45_郁金香哪有姐姐的浴巾香_";
+        Map<String, Object> rename = fileUtils.rename(name, true);
         System.out.println("文件名:" + rename.get("fileName"));
         System.out.println("标签:" + rename.get("tags"));
         System.out.println("创建日期:" + rename.get("created"));
@@ -178,14 +181,50 @@ class DouyinApiApplicationTests {
 
     @Test
     void walkFileTree(){
-        advancedUtil.walkFileTree("D:\\dy\\Download");
+        advancedUtil.walkFileTree("G:\\dy\\vv");
     }
 
     @Test
     void tt2(){
         List<String> list = new ArrayList<>();
         list.add("清风阁.txt");
-        System.err.println(ObjectUtil.contains(list, "清风阁.txt"));
+        list.add("test.mp4");
+        list.add("ttt.pdf");
+        list.add("xxx.jpg");
+        boolean bool = list.stream().anyMatch(r -> r.endsWith(".gif"));
+        System.err.println("是否包含===" + bool);
+    }
+
+
+    private final String[] videoSuffix = {"mp4", "avi", "mov", "flv", "mkv", "3gp"};
+    Boolean containsVideo(Path dir) throws IOException {
+        boolean containsVideo = false;
+
+        DirectoryStream<Path> stream = Files.newDirectoryStream(dir);
+        for (Path file : stream) {
+            String fileName = file.getFileName().toString();
+            if (ObjectUtil.contains(videoSuffix, FileUtil.getSuffix(fileName))) {
+                containsVideo = true;
+            }
+        }
+        stream.close();
+
+        return containsVideo;
+    }
+
+    @Test
+    void tt3() throws IOException {
+        Path path = Paths.get("G:\\dy\\vv\\like\\秦风戈\\2023-10-03 18.43.59__凡所有相___皆是虚妄_#芜湖方特华裳盛典");
+        Boolean aBoolean = containsVideo(path);
+        System.err.println(aBoolean);
+    }
+
+    @Test
+    void tt4(){
+        Path path = Paths.get("G:\\dy\\vv\\like\\秦风戈\\2023-10-05 12.55.40_石青____色_既然无人懂_孤独又何妨_#古风_#情感古风_#汉服_#国风古韵_#武侠风");
+        Map<String, String> map = fileUtils.getDirFileType(path);
+        System.err.println("视频类型为：" + map.get("videoSuffix"));
+        System.err.println("图片类型为：" + map.get("imageSuffix"));
     }
 
 }
