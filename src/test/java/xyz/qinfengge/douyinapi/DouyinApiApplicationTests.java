@@ -1,5 +1,6 @@
 package xyz.qinfengge.douyinapi;
 
+import cn.hutool.core.date.StopWatch;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ClassPathResource;
 import cn.hutool.core.io.resource.ResourceUtil;
@@ -181,7 +182,11 @@ class DouyinApiApplicationTests {
 
     @Test
     void walkFileTree(){
+        StopWatch watch = new StopWatch();
+        watch.start("文件树遍历");
         advancedUtil.walkFileTree("G:\\dy\\vv");
+        watch.stop();
+        System.err.println(watch.prettyPrint());
     }
 
     @Test
@@ -227,4 +232,29 @@ class DouyinApiApplicationTests {
         System.err.println("图片类型为：" + map.get("imageSuffix"));
     }
 
+
+    @Test
+    void test4(){
+        Path path = Paths.get("G:\\dy\\vv\\like\\秦风戈\\2023-01-09 21.44.38_#用硬曲召唤我的brother_#甜妹");
+        File[] files = FileUtil.file(path.toString()).listFiles();
+        assert files != null;
+//        Optional<File> file = Arrays.stream(files).findFirst().filter(r -> "mp4".equals(FileUtil.getSuffix(r)));
+        Optional<File> file = Arrays.stream(files).filter(r -> "mp4".equals(FileUtil.getSuffix(r))).findFirst();
+        System.err.println(file);
+    }
+
+    @Test
+    void fileCheck(){
+        Path path = Paths.get("G:\\dy\\vv\\like\\秦风戈\\2023-07-18 18.19.24_回复__尤克星星的评论_蹲蹲马步_粗暴好用_#武术_#武当功夫_#传统文化_#道家文化_#道系青年__抖音小助手");
+        Boolean aBoolean = fileUtils.checkFileDir(path);
+        System.err.println(aBoolean);
+    }
+
+    @Test
+    void testAudio(){
+        Path path = Paths.get("G:\\dy\\vv\\like\\秦风戈\\2023-01-17 10.00.01__汲取榜样的力量_#电影推荐_#高分电影");
+        List<String> list = FileUtil.listFileNames(path.toString());
+        Boolean aBoolean = fileUtils.hasAudio(list);
+        System.err.println(aBoolean);
+    }
 }

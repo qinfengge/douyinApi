@@ -5,6 +5,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.sun.activation.registries.MimeTypeFile;
 import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.MimeMultipart;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
@@ -171,9 +172,11 @@ public class FileUtils {
     public Boolean hasAudio(List<String> list) {
         // 有原声时
         for (String s : list) {
-            return "mp3".equals(FileUtil.getSuffix(s));
+            if ("mp3".equals(FileUtil.getSuffix(s))){
+                return true;
+            }
         }
-        return null;
+        return false;
     }
 
     public Boolean hasThumbnail(Path dir){
@@ -182,6 +185,32 @@ public class FileUtils {
             return ObjectUtil.contains(imageSuffix, FileUtil.getSuffix(s));
         }
         return null;
+    }
+
+
+    /**
+     * 判断文件夹是否合规，有图片或视频
+     * @param dir 文件夹
+     * @return 是否合规
+     * @throws IOException IOException
+     */
+    @SneakyThrows
+    public Boolean checkFileDir(Path dir){
+        boolean niceDir = false;
+
+        DirectoryStream<Path> stream = Files.newDirectoryStream(dir);
+        for (Path file : stream) {
+            String fileName = file.getFileName().toString();
+            if (ObjectUtil.contains(videoSuffix, FileUtil.getSuffix(fileName))) {
+                niceDir = true;
+            }
+            if (ObjectUtil.contains(imageSuffix, FileUtil.getSuffix(fileName))) {
+                niceDir = true;
+            }
+        }
+        stream.close();
+
+        return niceDir;
     }
 
 }

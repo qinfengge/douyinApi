@@ -1,5 +1,6 @@
 package xyz.qinfengge.douyinapi.util;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
@@ -48,6 +49,7 @@ public class AdvancedUtil {
 
         List<Video> videoList = new ArrayList<>();
         List<Path> pathList = new ArrayList<>();
+        List<Path> badFileDir = new ArrayList<>();
 
         Files.walkFileTree(Paths.get(path),new SimpleFileVisitor<Path>(){
             //进入文件夹触发
@@ -99,50 +101,59 @@ public class AdvancedUtil {
 
                     // 当为视频时
                     String shortUrl = parent2 + "/" + parent1 + "/" + map.get("fileName").toString() + "/" + map.get("fileName").toString();
-                    if (containsVideo){
-                        Map<String, String> mapSuffix = fileUtils.getDirFileType(dir);
 
-                        if (fileUtils.hasAudio(list)){
-                            video.setAudio(systemConfig.getSiteUrl() + shortUrl + ".mp3");
-                        }
-                        video.setUrl(systemConfig.getSiteUrl() + shortUrl + "." + mapSuffix.get("videoSuffix"));
+                    // 如果文件夹中有视频或图片
+                    if (fileUtils.checkFileDir(dir)){
 
-                        // 如果目录存在图片文件，则设置缩略图选项
-                        if (fileUtils.hasThumbnail(dir)){
-                            video.setThumbnail(systemConfig.getSiteUrl() + shortUrl + "." + mapSuffix.get("imageSuffix"));
-                        }else {
-                            // 调用缩略图生成工具，生成缩略图
-                            File[] files = FileUtil.file(dir.toString()).listFiles();
-                            assert files != null;
-                            Optional<File> file = Arrays.stream(files).findFirst().filter(r -> "mp4".equals(FileUtil.getSuffix(r)));
-                            thumbnailUtil.generateThumbnailByFile(file.get(), map.get("fileName").toString());
-                            video.setThumbnail(systemConfig.getSiteUrl() + shortUrl + ".jpg");
-                        }
-                    }else {
-                        // 当为图集时
-                        List<String> images = new ArrayList<>();
-                        // 当图集有原声时
-                        for (int i = 0; i < list.size(); i++) {
-                            Map<String, Object> fileMap = fileUtils.rename(list.get(i), false);
-                            shortUrl = parent2 + "/" + parent1 + "/" + map.get("fileName").toString() + "/" + fileMap.get("fileName").toString();
-                            if ("mp3".equals(FileUtil.getSuffix(list.get(i)))){
-                                video.setAudio(systemConfig.getSiteUrl() + shortUrl);
-                                images.add(systemConfig.getSiteUrl() + shortUrl);
-                            }else {
-                                images.add(systemConfig.getSiteUrl() + shortUrl);
+                        if (containsVideo){
+                            Map<String, String> mapSuffix = fileUtils.getDirFileType(dir);
+
+                            if (fileUtils.hasAudio(list)){
+                                video.setAudio(systemConfig.getSiteUrl() + shortUrl + ".mp3");
                             }
+                            video.setUrl(systemConfig.getSiteUrl() + shortUrl + "." + mapSuffix.get("videoSuffix"));
+
+                            // 如果目录存在图片文件，则设置缩略图选项
+                            if (fileUtils.hasThumbnail(dir)){
+                                video.setThumbnail(systemConfig.getSiteUrl() + shortUrl + "." + mapSuffix.get("imageSuffix"));
+                            }else {
+                                // 调用缩略图生成工具，生成缩略图
+                                File[] files = FileUtil.file(dir.toString()).listFiles();
+                                assert files != null;
+                                Optional<File> file = Arrays.stream(files).filter(r -> "mp4".equals(FileUtil.getSuffix(r))).findFirst();
+                                thumbnailUtil.generateThumbnailByFile(file.get(), map.get("fileName").toString());
+                                video.setThumbnail(systemConfig.getSiteUrl() + shortUrl + ".jpg");
+                            }
+                        }else {
+                            // 当为图集时
+                            List<String> images = new ArrayList<>();
+                            // 当图集有原声时
+                            for (int i = 0; i < list.size(); i++) {
+                                Map<String, Object> fileMap = fileUtils.rename(list.get(i), false);
+                                shortUrl = parent2 + "/" + parent1 + "/" + map.get("fileName").toString() + "/" + fileMap.get("fileName").toString();
+                                if ("mp3".equals(FileUtil.getSuffix(list.get(i)))){
+                                    video.setAudio(systemConfig.getSiteUrl() + shortUrl);
+                                    images.add(systemConfig.getSiteUrl() + shortUrl);
+                                }else {
+                                    images.add(systemConfig.getSiteUrl() + shortUrl);
+                                }
+                            }
+
+                            // 过滤掉集合中的MP3文件
+                            List<String> collect = images.stream().filter(r -> !r.endsWith(".mp3")).collect(Collectors.toList());
+
+                            video.setImages(collect);
+
+                            // 设置图集的缩略图为第一张
+                            video.setThumbnail(collect.get(0));
                         }
-
-                        // 过滤掉集合中的MP3文件
-                        List<String> collect = images.stream().filter(r -> !r.endsWith(".mp3")).collect(Collectors.toList());
-
-                        video.setImages(collect);
-
-                        // 设置图集的缩略图为第一张
-                        video.setThumbnail(collect.get(0));
+                        System.err.println("video===" + video);
+                        videoList.add(video);
+                    }else {
+                        // 如果文件夹不符合规范
+                        FileUtil.del(dir);
+                        badFileDir.add(dir);
                     }
-                    System.err.println("video===" + video);
-                    videoList.add(video);
 
                 }
 
@@ -152,9 +163,14 @@ public class AdvancedUtil {
         videoService.saveBatch(videoList);
         System.out.println("文件夹数量："+dircount+"文件数量："+filecount);
         System.err.println("pathList===" + pathList);
+        System.err.println("不符合的文件夹个数：" + badFileDir.size());
+        System.err.println("不符合的文件夹：" + badFileDir);
+
 
         List<Path> collect = pathList.stream().distinct().collect(Collectors.toList());
-        for (Path dir : collect) {
+        // 求差集，去掉全部文件夹中的不合格文件夹
+        Collection<Path> subtract = CollectionUtil.subtract(collect, badFileDir);
+        for (Path dir : subtract) {
             Map<String, Object> map = fileUtils.rename(dir.getFileName().toString(), true);
             FileUtil.rename(dir, map.get("fileName").toString(), false);
         }
