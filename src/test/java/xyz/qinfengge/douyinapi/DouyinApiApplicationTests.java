@@ -9,6 +9,10 @@ import cn.hutool.core.util.URLUtil;
 import cn.hutool.json.JSON;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.meilisearch.sdk.Client;
+import com.meilisearch.sdk.Index;
+import com.meilisearch.sdk.exceptions.MeilisearchException;
 import com.sun.deploy.net.URLEncoder;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +24,7 @@ import xyz.qinfengge.douyinapi.enums.Type;
 import xyz.qinfengge.douyinapi.mapper.VideoMapper;
 import xyz.qinfengge.douyinapi.util.AdvancedUtil;
 import xyz.qinfengge.douyinapi.util.FileUtils;
+import xyz.qinfengge.douyinapi.util.MeilisearchUtil;
 import xyz.qinfengge.douyinapi.util.ThumbnailUtil;
 
 import javax.annotation.Resource;
@@ -256,5 +261,26 @@ class DouyinApiApplicationTests {
         List<String> list = FileUtil.listFileNames(path.toString());
         Boolean aBoolean = fileUtils.hasAudio(list);
         System.err.println(aBoolean);
+    }
+
+
+    @Resource
+    private MeilisearchUtil meilisearchUtil;
+
+    @Test
+    void meiliTest() throws MeilisearchException {
+        Client client = meilisearchUtil.init();
+        Index index = meilisearchUtil.createIndex(client, "video");
+        String[] attributes = {"name", "tags", "userName"};
+        index.updateSearchableAttributesSettings(attributes);
+        List<Video> videos = videoMapper.selectList(null);
+        String jsonStr = JSONUtil.toJsonStr(videos);
+        meilisearchUtil.addDocument(index, jsonStr);
+    }
+
+    @Test
+    void deleteIndex(){
+        Client client = meilisearchUtil.init();
+        meilisearchUtil.deleteIndex(client, "test");
     }
 }

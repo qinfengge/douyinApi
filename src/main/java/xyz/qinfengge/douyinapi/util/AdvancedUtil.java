@@ -5,6 +5,8 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.meilisearch.sdk.Client;
+import com.meilisearch.sdk.Index;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
 import xyz.qinfengge.douyinapi.config.SystemConfig;
@@ -41,6 +43,9 @@ public class AdvancedUtil {
 
     @Resource
     private ThumbnailUtil thumbnailUtil;
+
+    @Resource
+    private MeilisearchUtil meilisearchUtil;
 
     @SneakyThrows
     public void walkFileTree(String path){
@@ -161,6 +166,18 @@ public class AdvancedUtil {
             }
         });
         videoService.saveBatch(videoList);
+
+        // 初始化MeiliSearch
+        Client client = meilisearchUtil.init();
+        // 创建索引库 video
+        Index index = meilisearchUtil.createIndex(client, "video");
+        // 设置搜索字段
+        String[] attributes = {"name", "tags", "userName"};
+        index.updateSearchableAttributesSettings(attributes);
+        // 添加文档到索引库
+        String jsonStr = JSONUtil.toJsonStr(videoList);
+        meilisearchUtil.addDocument(index, jsonStr);
+
         System.out.println("文件夹数量："+dircount+"文件数量："+filecount);
         System.err.println("pathList===" + pathList);
         System.err.println("不符合的文件夹个数：" + badFileDir.size());
