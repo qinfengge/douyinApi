@@ -17,7 +17,6 @@ public class FileProperties {
 
     private String videoDir;
 
-    private String thumbnailDir;
-
     private Integer videoFrame;
+
 }

@@ -1,13 +1,11 @@
 package xyz.qinfengge.douyinapi.util;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -15,7 +13,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author lza
@@ -25,83 +22,6 @@ import java.util.stream.Collectors;
 @Component
 public class FileUtils {
 
-    /**
-     * 重命名文件
-     * @param name 文件名
-     * @return Map
-     */
-    public Map<String, Object> rename(String name, Boolean isDirectory) {
-        String[] parts = name.split("_");
-
-        List<String> tags = new ArrayList<>();
-
-        List<String> fileNameParts = new ArrayList<>();
-
-        for (String part : parts) {
-
-            int start = part.indexOf("#");
-            int end = part.lastIndexOf("#");
-
-            if (start != -1 && start != end) {
-                // 多个标签的情况
-                String tag = part.substring(start, end + 1);
-                tags.add(tag);
-                part = part.replace(tag, "");
-
-            } else if (start != -1) {
-                // 只有一个标签的情况
-                String tag = part.substring(start);
-                tags.add(tag);
-                part = part.replace(tag, "");
-            }
-
-            String namePart1 = part.replaceAll(" ", "-");
-            String namePart2 = namePart1.replaceAll("#.*?#", "");
-            fileNameParts.add(namePart2);
-        }
-
-        List<String> collect = fileNameParts.stream().filter(v -> !v.isEmpty()).collect(Collectors.toList());
-
-//        System.err.println(collect);
-
-
-        // 当文件名为空时，即仅有日期时，使用日期
-        String fileName;
-
-        if (collect.size() == 1){
-            fileName = collect.get(0);
-        }else if (collect.size() == 2){
-            if (isDirectory){
-                fileName = collect.get(1);
-            }else {
-                fileName = collect.get(0) + "." + FileUtil.getSuffix(collect.get(1));
-            }
-        }else {
-            // 当不是文件夹时重命名逻辑
-            if (!isDirectory){
-                File file = FileUtil.file(name);
-                String suffix = FileUtil.getSuffix(file);
-                // 当文件是图集时重命名逻辑
-                if (!"jpg".equals(suffix)){
-                    List<String> sublist = collect.subList(1, collect.size() - 1);
-                    fileName = String.join(" ", sublist) + "." + suffix;
-                }else {
-                    List<String> sublist = collect.subList(1, collect.size() - 2);
-                    fileName = String.join(" ", sublist) + collect.get(collect.size() - 1);
-                }
-            }else {
-                List<String> sublist = collect.subList(1, collect.size());
-                fileName = String.join(" ", sublist);
-            }
-        }
-
-
-        Map<String, Object> map = new HashMap<>();
-        map.put("fileName", fileName);
-        map.put("tags", tags);
-        map.put("created", collect.get(0));
-        return map;
-    }
 
     /**
      * 获取文件父目录名称
@@ -234,7 +154,8 @@ public class FileUtils {
         String[] parts = name.replaceFirst(createTime, "").split("-");
         String type = parts.length > 1 ? parts[1] : "";
         String author = parts.length > 2 ? parts[2] : "";
-        String fileName = parts.length > 3 ? parts[3].replaceAll("#", "") : "";
+        String fileName = parts.length > 3 ? parts[3] : "";
+        String fileNameEncode = parts.length > 3 ? parts[3].replaceAll("#", "") : "";
 
         Map<String, Object> map = new HashMap<>();
         map.put("created", createTime);
@@ -242,6 +163,7 @@ public class FileUtils {
         map.put("author", author);
         // 当文件名为空时，则使用日期和作者作为文件名
         map.put("fileName", (fileName.isEmpty() ? createTime + "_" + author : fileName));
+        map.put("fileNameEncode", (fileNameEncode.isEmpty() ? createTime + "_" + author : fileNameEncode));
 
         // 收集标签
         List<String> tags = new ArrayList<>();
@@ -277,7 +199,7 @@ public class FileUtils {
 
         // 分割出类型、作者和文件名
         String[] parts2 = name.replaceFirst(createTime, "").split("-");
-        String fileName = parts2.length > 3 ? parts2[3].replaceAll("#", "") : "";
+        String fileName = parts2.length > 3 ? parts2[3] : "";
 
         if ("mp3".equals(FileUtil.getSuffix(fullName))){
             return fileName;

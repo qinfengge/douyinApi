@@ -16,12 +16,4 @@ public class SystemConfig {
     @Value("${site.url}")
     private String siteUrl;
 
-    @Value("${ffmpeg.path}")
-    private String ffmpegPath;
-
-    @Value("${file.input.dir}")
-    private String fileInputDir;
-
-    @Value("${isRename}")
-    private Boolean isRename;
 }

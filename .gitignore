@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+/src/test/
+/仿抖音短视频小程序APP组件（超高性能）自动预加载/.hbuilderx/
+/仿抖音短视频小程序APP组件（超高性能）自动预加载/node_modules/

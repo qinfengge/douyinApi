@@ -69,7 +69,7 @@ public class AdvancedUtil {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 Map<String, Object> map = fileUtils.splitDirInfo(file.getFileName().toString(), false);
-                String newName = map.get("fileName").toString() + "." +FileUtil.getSuffix(file.toFile());
+                String newName = map.get("fileNameEncode").toString() + "." +FileUtil.getSuffix(file.toFile());
                 FileUtil.rename(file, newName, false);
                 pathList.add(file.getParent());
                 filecount.incrementAndGet();
@@ -101,7 +101,7 @@ public class AdvancedUtil {
                     video.setType(Type.getTypeCode(map.get("type").toString()));
 
                     // 当为视频时
-                    String shortUrl = map.get("fileName").toString() + "/" + map.get("fileName").toString();
+                    String shortUrl = map.get("fileNameEncode").toString() + "/" + map.get("fileNameEncode").toString();
 
                     // 如果文件夹中有视频或图片
                     if (fileUtils.checkFileDir(dir)){
@@ -122,7 +122,7 @@ public class AdvancedUtil {
                                 File[] files = FileUtil.file(dir.toString()).listFiles();
                                 assert files != null;
                                 Optional<File> file = Arrays.stream(files).filter(r -> "mp4".equals(FileUtil.getSuffix(r))).findFirst();
-                                thumbnailUtil.generateThumbnailByFile(file.get(), map.get("fileName").toString());
+                                thumbnailUtil.generateThumbnailByFile(file.get(), map.get("fileNameEncode").toString());
                                 video.setThumbnail(systemConfig.getSiteUrl() + shortUrl + ".jpg");
                             }
                         }else {
@@ -130,7 +130,7 @@ public class AdvancedUtil {
                             List<String> images = new ArrayList<>();
                             // 当图集有原声时
                             for (int i = 0; i < list.size(); i++) {
-                                shortUrl = map.get("fileName").toString() + "/" + list.get(i);
+                                shortUrl = map.get("fileNameEncode").toString() + "/" + list.get(i);
                                 if ("mp3".equals(FileUtil.getSuffix(list.get(i)))){
                                     video.setAudio(systemConfig.getSiteUrl() + shortUrl);
                                 }else {
@@ -166,7 +166,7 @@ public class AdvancedUtil {
         // 创建索引库 video
         Index index = meilisearchUtil.createIndex(client, "video");
         // 设置搜索字段
-        String[] attributes = {"name", "tags", "author"};
+        String[] attributes = {"name", "tags", "userName"};
         index.updateSearchableAttributesSettings(attributes);
         // 添加文档到索引库
         String jsonStr = JSONUtil.toJsonStr(videoList);
@@ -183,7 +183,7 @@ public class AdvancedUtil {
         Collection<Path> subtract = CollectionUtil.subtract(collect, badFileDir);
         for (Path dir : subtract) {
             Map<String, Object> map = fileUtils.splitDirInfo(dir.getFileName().toString(), true);
-            FileUtil.rename(dir, map.get("fileName").toString(), false);
+            FileUtil.rename(dir, map.get("fileNameEncode").toString(), false);
         }
     }
 }

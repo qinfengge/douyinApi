@@ -36,9 +36,6 @@ public class VideoController {
     private VideoService videoService;
 
     @Resource
-    private SystemConfig systemConfig;
-
-    @Resource
     private IdsConfig idsConfig;
 
     @Resource
@@ -49,21 +46,26 @@ public class VideoController {
 
     private final Integer size = 5;
 
+
+    /**
+     * 初始化，遍历文件
+     * @return 结果
+     */
     @PostMapping("init")
-    public Result<Object> init() throws IOException {
+    public Result<Object> init() {
         File file = new File(fileProperties.getVideoDir());
         if (file.exists()){
             advancedUtil.walkFileTree(fileProperties.getVideoDir());
             return Result.ok("初始化成功！");
         }else {
-            return Result.fail("输入路径错误！=====" + systemConfig.getFileInputDir());
+            return Result.fail("输入路径错误！=====" + fileProperties.getVideoDir());
         }
     }
 
 
     /**
      * 随机一条视频
-     * @return
+     * @return 一条视频
      */
     @GetMapping("random")
     public Result<Object> random(){
@@ -82,7 +84,7 @@ public class VideoController {
 
     /**
      * 随机5条视频
-     * @return
+     * @return 5条视频
      */
     @GetMapping("randomList")
     public Result<Object> randomList(){
@@ -142,8 +144,8 @@ public class VideoController {
 
     /**
      * 根据前端传值获取上一个视频
-     * @param id
-     * @return
+     * @param id 视频ID
+     * @return 对于的视频信息
      */
     @PostMapping("findById/{id}")
     public Result<Object> findById(@PathVariable Integer id){

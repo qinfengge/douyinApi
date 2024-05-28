@@ -1,0 +1,9 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#000000",
+  "navigationBarBackgroundColor": "#000000",
+  "usingComponents": {
+    "m-tik-tok": "../../components/mTikTok3"
+  }
+}

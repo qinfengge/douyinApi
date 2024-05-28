@@ -74,11 +74,6 @@ class DouyinApiApplicationTests {
     @Resource
     private ThumbnailUtil thumbnailUtil;
 
-    @Test
-    void CVTest() throws InterruptedException {
-        thumbnailUtil.singleVideoInsert();
-        sleep(10 * 1000);
-    }
 
 
     @Test
