@@ -10,19 +10,15 @@ import lombok.Getter;
 public enum Type {
 
     /**
-     * 用户上传的视频
+     * 视频
      */
-    POST(1, "post"),
+    VIDEO(1, "视频"),
 
     /**
-     * 用户的喜欢
+     * 图集
      */
-    LIKE(2, "like"),
+    ALBUM(2, "图集");
 
-    /**
-     * 用户的收藏
-     */
-    COLLECTION(3, "collection");
 
     private final Integer code;
     private final String flag;

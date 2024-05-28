@@ -3,22 +3,14 @@ package xyz.qinfengge.douyinapi;
 import cn.hutool.core.date.StopWatch;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ClassPathResource;
-import cn.hutool.core.io.resource.ResourceUtil;
 import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.URLUtil;
-import cn.hutool.json.JSON;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.exceptions.MeilisearchException;
-import com.sun.deploy.net.URLEncoder;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.stereotype.Component;
 import xyz.qinfengge.douyinapi.entity.Video;
 import xyz.qinfengge.douyinapi.enums.Type;
 import xyz.qinfengge.douyinapi.mapper.VideoMapper;
@@ -29,10 +21,9 @@ import xyz.qinfengge.douyinapi.util.ThumbnailUtil;
 
 import javax.annotation.Resource;
 import java.io.*;
+import java.net.URLEncoder;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
@@ -175,7 +166,7 @@ class DouyinApiApplicationTests {
                 FileUtil.rename(image, fileName, false);
             }
             video.setImages(images);
-            video.setType(Type.POST.getCode());
+            video.setType(Type.getTypeCode(map.get("type").toString()));
             videoMapper.insert(video);
 
             FileUtil.rename(items, map.get("fileName").toString(), true);

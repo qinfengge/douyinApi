@@ -1,5 +1,7 @@
 package xyz.qinfengge.douyinapi;
 
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
@@ -7,16 +9,16 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import xyz.qinfengge.douyinapi.entity.Video;
 import xyz.qinfengge.douyinapi.enums.Type;
+import xyz.qinfengge.douyinapi.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -138,7 +140,7 @@ public class WalkFileTreeTest {
      * @return Map
      */
     public Map<String, Object> rename(String name, Boolean isDirectory) {
-        String[] parts = name.split("_");
+        String[] parts = name.split("-");
 
         List<String> tags = new ArrayList<>();
 
@@ -203,9 +205,11 @@ public class WalkFileTreeTest {
 
 
         Map<String, Object> map = new HashMap<>();
-        map.put("fileName", fileName);
+        map.put("created", parts[0]);
+        map.put("type", parts[1]);
+        map.put("author", parts[2]);
+        map.put("fileName", parts[3]);
         map.put("tags", tags);
-        map.put("created", collect.get(0));
         return map;
     }
 
@@ -288,10 +292,128 @@ public class WalkFileTreeTest {
 
     @Test
     void doRename() {
-        String name = "2023-06-14 01.35.46_#反差_image_1.mp3";
-        Map<String, Object> rename = rename(name, false);
+        String name = "2024-03-26 19.56.57-视频-许益-在杭州最江南的樱花日落！#春日樱花大赏 #杭州樱花 #杭州路边偶遇樱花林 #好看的花一定要分享给你 #这是属于春天的氛围感";
+        Map<String, Object> rename = rename(name, true);
         System.out.println("文件名:" + rename.get("fileName"));
         System.out.println("标签:" + rename.get("tags"));
         System.out.println("创建日期:" + rename.get("created"));
+    }
+
+    @Test
+    void rr1(){
+        String name = "2024-03-28 16.01.08-视频-汤阮-";
+
+        // 使用正则表达式匹配包含时间的完整日期
+        Pattern datePattern = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}\\.\\d{2}\\.\\d{2})");
+        Matcher dateMatcher = datePattern.matcher(name);
+        String createTime = "";
+        if (dateMatcher.find()) {
+            createTime = dateMatcher.group(1);
+        }
+
+        // 分割出类型、作者和文件名
+        String[] parts = name.replaceFirst(createTime, "").split("-");
+        String type = parts.length > 1 ? parts[1] : "";
+        String author = parts.length > 2 ? parts[2] : "";
+        String fileName = parts.length > 3 ? parts[3] : "";
+
+        System.out.println("创建时间: " + createTime);
+        System.out.println("类型: " + type);
+        System.out.println("作者: " + author);
+        System.out.println("文件名: " + (fileName.isEmpty() ? createTime + "_" + author : fileName));
+
+        // 收集标签
+        List<String> tags = new ArrayList<>();
+        Pattern pattern = Pattern.compile("#(.*?)(?=#|$)");
+        Matcher matcher = pattern.matcher(fileName);
+        while (matcher.find()) {
+            // group(1) 引用的是第一个括号内的内容，即 (.*?)
+            tags.add(matcher.group().trim());
+        }
+
+        System.out.println("标签集合: " + tags);
+    }
+
+    @Test
+    void rr2(){
+        String name = "2024-02-20 10.45.33-图集-兔娘-旅…旅行者你说的是要这样踩你吗#原神#原神枫丹#原神海灯节_1.jpeg";
+
+        String prefix = FileUtil.getPrefix(name);
+
+        System.err.println(prefix);
+
+        // 使用正则表达式匹配包含时间的完整日期
+        Pattern datePattern = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}\\.\\d{2}\\.\\d{2})");
+        Matcher dateMatcher = datePattern.matcher(name);
+        String createTime = "";
+        if (dateMatcher.find()) {
+            createTime = dateMatcher.group(1);
+        }
+
+        // 分割出类型、作者和文件名
+        String[] parts = prefix.replaceFirst(createTime, "").split("-");
+        String type = parts.length > 1 ? parts[1] : "";
+        String author = parts.length > 2 ? parts[2] : "";
+        String fileName = parts.length > 3 ? parts[3] : "";
+
+        System.out.println("创建时间: " + createTime);
+        System.out.println("类型: " + type);
+        System.out.println("作者: " + author);
+        System.out.println("文件名: " + (fileName.isEmpty() ? createTime + "_" + author : fileName));
+
+        // 收集标签
+        List<String> tags = new ArrayList<>();
+        Pattern pattern = Pattern.compile("#(.*?)(?=#|$)");
+        Matcher matcher = pattern.matcher(fileName);
+        while (matcher.find()) {
+            // group(1) 引用的是第一个括号内的内容，即 (.*?)
+            tags.add(matcher.group().trim());
+        }
+
+        System.out.println("标签集合: " + tags);
+    }
+
+    @Test
+    void rr3(){
+        String[] imageSuffix = {"jpg", "gif", "jpge", "png", "webp"};
+        List<String> suffix = new ArrayList<>();
+        suffix.add("mp3");
+        suffix.add("mp4");
+        ArrayList<String> list1 = new ArrayList<>(Arrays.asList(imageSuffix));
+        System.out.println(CollectionUtil.isNotEmpty(CollectionUtil.intersection(list1, suffix)));
+    }
+
+    @Test
+    void rr4(){
+        String path = "E:\\dy\\2024-02-20 10.45.33-图集-兔娘-旅…旅行者你说的是要这样踩你吗#原神#原神枫丹#原神海灯节";
+        Path file = Paths.get(path);
+        Boolean b = new FileUtils().checkFileDir(file);
+        System.err.println(b);
+    }
+
+    @Test
+    void rr5(){
+        String fullName = "2024-02-20 10.45.33-图集-兔娘-旅…旅行者你说的是要这样踩你吗#原神#原神枫丹#原神海灯节_1.jpeg";
+        String[] parts = fullName.split("_");
+        String name = parts[0];
+
+        // 使用正则表达式匹配包含时间的完整日期
+        Pattern datePattern = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}\\.\\d{2}\\.\\d{2})");
+        Matcher dateMatcher = datePattern.matcher(name);
+        String createTime = "";
+        if (dateMatcher.find()) {
+            createTime = dateMatcher.group(1);
+        }
+
+        // 分割出类型、作者和文件名
+        String[] parts2 = name.replaceFirst(createTime, "").split("-");
+        String fileName = parts2.length > 3 ? parts2[3].replaceAll("#", "_") : "";
+
+        if ("mp3".equals(FileUtil.getSuffix(fullName))){
+            System.err.println(fileName);
+        }else {
+            // 重命名后的文件名
+            System.err.println(fileName + "_" + parts[1]);
+        }
     }
 }

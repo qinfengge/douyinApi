@@ -68,11 +68,10 @@ public class AdvancedUtil {
             //进入文件触发
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (!file.toString().endsWith(".txt")){
-                    Map<String, Object> map = fileUtils.rename(file.getFileName().toString(), false);
-                    FileUtil.rename(file, map.get("fileName").toString(), false);
-                    pathList.add(file.getParent());
-                }
+                Map<String, Object> map = fileUtils.splitDirInfo(file.getFileName().toString(), false);
+                String newName = map.get("fileName").toString() + "." +FileUtil.getSuffix(file.toFile());
+                FileUtil.rename(file, newName, false);
+                pathList.add(file.getParent());
                 filecount.incrementAndGet();
                 return super.visitFile(file, attrs);
             }
@@ -80,20 +79,17 @@ public class AdvancedUtil {
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
 
-                Map<String, Object> map = fileUtils.rename(dir.getFileName().toString(), true);
+                Map<String, Object> map = fileUtils.splitDirInfo(dir.getFileName().toString(), true);
                 System.out.println("文件名:" + map.get("fileName"));
                 System.out.println("标签:" + map.get("tags"));
                 System.out.println("创建日期:" + map.get("created"));
 
                 List<String> list = FileUtil.listFileNames(dir.toString());
 
-                // 当文件夹中有文件才更新文件夹名，需要上传文件夹内以账号命名的txt文件
-                boolean bool = list.stream().anyMatch(r -> r.endsWith(".txt"));
 
-                if (!list.isEmpty() && !bool){
+                if (!list.isEmpty()){
                     System.err.println("需要重命名的文件：" + list);
-                    String parent1 = fileUtils.getFileParentName(dir, 1);
-                    String parent2 = fileUtils.getFileParentName(dir, 2);
+
 
                     Video video = new Video();
                     Boolean containsVideo = fileUtils.containsVideo(dir);
@@ -101,11 +97,11 @@ public class AdvancedUtil {
                     video.setCreated(map.get("created").toString());
                     List<String> tags = JSONUtil.toList(JSONUtil.parseArray(map.get("tags")), String.class);
                     video.setTags(tags);
-                    video.setUserName(parent1);
-                    video.setType(Type.getTypeCode(parent2));
+                    video.setUserName(map.get("author").toString());
+                    video.setType(Type.getTypeCode(map.get("type").toString()));
 
                     // 当为视频时
-                    String shortUrl = parent2 + "/" + parent1 + "/" + map.get("fileName").toString() + "/" + map.get("fileName").toString();
+                    String shortUrl = map.get("fileName").toString() + "/" + map.get("fileName").toString();
 
                     // 如果文件夹中有视频或图片
                     if (fileUtils.checkFileDir(dir)){
@@ -134,11 +130,9 @@ public class AdvancedUtil {
                             List<String> images = new ArrayList<>();
                             // 当图集有原声时
                             for (int i = 0; i < list.size(); i++) {
-                                Map<String, Object> fileMap = fileUtils.rename(list.get(i), false);
-                                shortUrl = parent2 + "/" + parent1 + "/" + map.get("fileName").toString() + "/" + fileMap.get("fileName").toString();
+                                shortUrl = map.get("fileName").toString() + "/" + list.get(i);
                                 if ("mp3".equals(FileUtil.getSuffix(list.get(i)))){
                                     video.setAudio(systemConfig.getSiteUrl() + shortUrl);
-                                    images.add(systemConfig.getSiteUrl() + shortUrl);
                                 }else {
                                     images.add(systemConfig.getSiteUrl() + shortUrl);
                                 }
@@ -172,7 +166,7 @@ public class AdvancedUtil {
         // 创建索引库 video
         Index index = meilisearchUtil.createIndex(client, "video");
         // 设置搜索字段
-        String[] attributes = {"name", "tags", "userName"};
+        String[] attributes = {"name", "tags", "author"};
         index.updateSearchableAttributesSettings(attributes);
         // 添加文档到索引库
         String jsonStr = JSONUtil.toJsonStr(videoList);
@@ -188,7 +182,7 @@ public class AdvancedUtil {
         // 求差集，去掉全部文件夹中的不合格文件夹
         Collection<Path> subtract = CollectionUtil.subtract(collect, badFileDir);
         for (Path dir : subtract) {
-            Map<String, Object> map = fileUtils.rename(dir.getFileName().toString(), true);
+            Map<String, Object> map = fileUtils.splitDirInfo(dir.getFileName().toString(), true);
             FileUtil.rename(dir, map.get("fileName").toString(), false);
         }
     }

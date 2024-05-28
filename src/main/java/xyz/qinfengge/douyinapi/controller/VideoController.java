@@ -9,8 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import xyz.qinfengge.douyinapi.config.IdsConfig;
 import xyz.qinfengge.douyinapi.config.SystemConfig;
 import xyz.qinfengge.douyinapi.entity.Video;
+import xyz.qinfengge.douyinapi.properties.FileProperties;
 import xyz.qinfengge.douyinapi.result.Result;
 import xyz.qinfengge.douyinapi.service.VideoService;
+import xyz.qinfengge.douyinapi.util.AdvancedUtil;
 
 import javax.annotation.Resource;
 import java.io.File;
@@ -39,13 +41,20 @@ public class VideoController {
     @Resource
     private IdsConfig idsConfig;
 
+    @Resource
+    private FileProperties fileProperties;
+
+    @Resource
+    private AdvancedUtil advancedUtil;
+
     private final Integer size = 5;
 
     @PostMapping("init")
     public Result<Object> init() throws IOException {
-        File file = new File(systemConfig.getFileInputDir());
+        File file = new File(fileProperties.getVideoDir());
         if (file.exists()){
-            return videoService.init(systemConfig.getIsRename());
+            advancedUtil.walkFileTree(fileProperties.getVideoDir());
+            return Result.ok("初始化成功！");
         }else {
             return Result.fail("输入路径错误！=====" + systemConfig.getFileInputDir());
         }
